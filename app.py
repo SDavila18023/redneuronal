@@ -15,10 +15,15 @@ CORS(app)
 file_path = './datos.csv'
 data = pd.read_csv(file_path, sep=';')
 
+# Revisar la distribución de los datos
+print(data['output'].describe())
+
 # Preparar datos
 encoder = OneHotEncoder(sparse_output=False)
 dominant_foot_encoded = encoder.fit_transform(data[['dominantFoot']])
 dominant_foot_df = pd.DataFrame(dominant_foot_encoded, columns=encoder.get_feature_names_out(['dominantFoot']))
+
+# Incluir 'achievements', 'injuryHistory', y 'trainingHoursPerWeek' en las features
 features = pd.concat([data.drop(columns=['output', 'dominantFoot']), dominant_foot_df], axis=1)
 
 X = features.values
@@ -38,8 +43,10 @@ else:
         Dense(32, activation='relu'),
         Dense(1, activation='sigmoid')
     ])
-    model.compile(optimizer='adam', loss=tf.keras.losses.MeanSquaredError(), metrics=[tf.keras.metrics.MeanAbsoluteError()])
-    model.fit(X_train, y_train, epochs=50, batch_size=32, validation_split=0.2)
+    model.compile(optimizer='adam', 
+                  loss='binary_crossentropy', 
+                  metrics=['accuracy', tf.keras.metrics.MeanAbsoluteError()])
+    model.fit(X_train, y_train, epochs=20, batch_size=16, validation_split=0.2)
     model.save('modelo_entrenado.h5')
 
 # Predicción
@@ -54,6 +61,9 @@ def predecir_puntaje(nueva_jugadora):
             nueva_jugadora['videoUploaded'],
             nueva_jugadora['ambidextrous'],
             nueva_jugadora['versatility'],
+            nueva_jugadora['achievements'],
+            nueva_jugadora['injuryHistory'],
+            nueva_jugadora['trainingHoursPerWeek']
         ]
         features.extend(dominant_foot.flatten())
         features_scaled = scaler.transform([features])
